@@ -1,3 +1,3 @@
 # RC-P
 Proiect Retele de calculatoare, implementare transfer fisiere - fereastra glisanta (Go back n)
-va urma...
+Nu va mai urma

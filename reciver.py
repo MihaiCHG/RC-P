@@ -8,6 +8,7 @@ try:
     UDP_IP = socket.gethostbyname(socket.gethostname())
     UDP_PORT = 5005
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind((UDP_IP, UDP_PORT))
     print(UDP_IP)
     nr_pachete = 0
@@ -26,7 +27,7 @@ try:
             print(nr_pachete)
             numeFis = packet[5:]
             print("Nume fisier ", numeFis, ", numar de pachete ", nr_pachete.hex())
-            file = open(numeFis,"w")
+            file = open(numeFis,"wb")
         if packet[0] == Data:
             print("Pachet tip date")
             numarPachet = packet[1:5]
@@ -36,11 +37,21 @@ try:
                 toSend = b''
                 toSend = toSend + Ack.to_bytes(1, "big") + numarPachet
                 print(toSend.hex())
-                sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 s= sock2.sendto(toSend, (addr[0], 5006))
-                print(s)
+
+                #print(s)
                 print("adasd")
                 packetAsteptat += 1
-                file.write(packet[9:])
+                if numarPachet==nr_pachete:
+                    print(lungime)
+                    file.write(packet[9:lungime+1])
+                    break
+                else:
+                    file.write(packet[9:])
+
+
+    sock.close()
+    sock2.close()
+    file.close()
 except:
     print()

@@ -1,9 +1,8 @@
-
 import socket
 from random import random
 
 
-class Reciver:
+class Receiver:
     def __init__(self, ip, port):
         self.UDP_IP = ip
         self.UDP_PORT = port
@@ -82,5 +81,5 @@ class Reciver:
 if __name__ == "__main__":
     UDP_IP = socket.gethostbyname(socket.gethostname())
     UDP_PORT = 5005
-    reciver = Reciver(UDP_IP, UDP_PORT)
-    reciver.start()
+    receiver = Receiver(UDP_IP, UDP_PORT)
+    receiver.start()

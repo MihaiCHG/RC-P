@@ -1,44 +1,95 @@
 import socket
-import time
 
-ack = 2
+FRAME_INFO = 8
+FRAME_DATA = 4
+FRAME_ACKNOWLEDGE = 2
+
+
+class Sender:
+    def __init__(self, IP, PORT, MY_IP, MY_PORT):
+        self.IP = IP
+        self.PORT = PORT
+        self.MY_IP = MY_IP
+        self.MY_PORT = MY_PORT
+        self.sizeOfFrame = 1500
+        self.sock_transmit = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock_recv = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock_recv.bind((self.MY_IP, self.MY_PORT))
+
+    def readFile(self, fileName):
+        self.fileName = fileName
+        self.file = open(self.fileName, "rb")
+        self.file.seek(0, 2)
+        self.fileLength = self.file.tell()
+        self.file.seek(0, 0)
+        self.nrOfPackets = int(self.fileLength / self.sizeOfFrame)
+
+    def sendInfo(self):
+        header = FRAME_INFO
+        firstFrame = b''
+        firstFrame += header.to_bytes(1, "big")
+        firstFrame += self.nrOfPackets.to_bytes(4, "big")
+        firstFrame += fileName.encode("UTF-8")
+        self.sock_transmit.sendto(firstFrame, (RECEIVER_IP, RECEIVER_PORT))
+
+
+    def sendData(self):
+        global nRead
+        packetID = 1
+        header = FRAME_DATA
+        windowSize = 5
+        nRead = windowSize
+        while packetID <= self.nrOfPackets:
+            for i in range(nRead):
+                dataToSend = self.file.read(self.sizeOfFrame)
+                dataLength = len(dataToSend)
+                dataToSend = header.to_bytes(1, "big") + packetID.to_bytes(4, "big") + dataLength.to_bytes(4, "big") + dataToSend
+                self.sock_transmit.sendto(dataToSend, (self.IP, self.PORT))
+                print('Am trimis pechetul ', packetID)
+                packetID += 1
+            self.sock_recv.settimeout(0.5)
+            try:
+                receivedData, addr = self.sock_recv.recvfrom(1024)
+                if receivedData[0] == FRAME_ACKNOWLEDGE:
+                    print('Am primit ACK pentru: ', receivedData[1:5].hex())
+                    if receivedData[1:5] == (packetID-windowSize).to_bytes(4,'big'):
+                        nRead = 1
+                    else:
+                        print(receivedData[1:5].hex())
+                        self.file.seek(-windowSize*self.sizeOfFrame, 1)
+                        packetID -= windowSize
+                        nRead = windowSize
+                        print(packetID)
+            except:
+                self.file.seek(-windowSize*self.sizeOfFrame, 1)
+                packetID -= windowSize
+                nRead = windowSize
+        for i in range(windowSize - 1):
+            try:
+                receivedData, addr = self.sock_recv.recvfrom(1024)
+                if receivedData[0] == FRAME_ACKNOWLEDGE:
+                    print('Am primit ACK pentru: ', receivedData[1:5].hex())
+                    if receivedData[1:5] == (packetID-windowSize).to_bytes(4, 'big'):
+                        nRead = 1
+                    else:
+                        print(receivedData[1:5].hex())
+                        self.file.seek(-windowSize*self.sizeOfFrame, 1)
+                        packetID -= windowSize
+                        nRead = windowSize
+            except:
+                self.file.seek(-windowSize*self.sizeOfFrame, 1)
+                packetID -= windowSize
+                nRead = windowSize
+        self.file.close()
+
 
 if __name__ == "__main__":
+    MY_IP = ""
+    MY_PORT = 5006
     RECEIVER_IP = ""
     RECEIVER_PORT = 5005
-    MYIP = ""
-    MY_PORT = 5006
-    sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock2.bind((MYIP, MY_PORT))
-    print(MYIP)
-    fileName = "IMG_20180425_103211.jpg"
-    file = open(fileName, "rb")
-    file.seek(0, 2)
-    fileLength = file.tell()
-    file.seek(0, 0)
-    sizeOfFrame = 100
-    nrOfPackets = int(fileLength / sizeOfFrame) + 1
-    print("Numarul de pachete:", nrOfPackets)
-    header = 8
-    firstFrame = b''
-    firstFrame += header.to_bytes(1, "big")
-    firstFrame += nrOfPackets.to_bytes(4, "big")
-    firstFrame += fileName.encode("UTF-8")
-    print("Fisierul are dimensiunea de %d octeti" %(fileLength))
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.sendto(firstFrame, (RECEIVER_IP, RECEIVER_PORT))
-    packetID = 1
-    isReading = True
-    header = 4
-    while packetID <= nrOfPackets:
-        dataToSend = file.read(sizeOfFrame)
-        dataLength = len(dataToSend)
-        dataToSend = header.to_bytes(1, "big") + packetID.to_bytes(4, "big") + dataLength.to_bytes(4, "big") + dataToSend
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.sendto(dataToSend, (RECEIVER_IP, RECEIVER_PORT))
-        print("S-a trimis pachetul", packetID)
-        packetID += 1
-        receivedData, addr = sock2.recvfrom(1024)
-        if receivedData[0] == ack:
-            print('Am primit ACK pentru: ', receivedData[1:5].hex())
-    file.close()
+    fileName = "IMG_20180425_103211_2.jpg"
+    s = Sender(RECEIVER_IP, RECEIVER_PORT, MY_IP, MY_PORT)
+    s.readFile(fileName)
+    s.sendInfo()
+    s.sendData()

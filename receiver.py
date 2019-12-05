@@ -1,3 +1,4 @@
+
 import socket
 from random import random
 
@@ -57,15 +58,12 @@ class Receiver:
                         print("Numar de secventa ", packetID.hex(), ", lungime ", length.hex())
                         toSend = self.encodeAck(packetID)
                         a = random()
-                        if a>0.03:
+                        if a>0.003:
                             s = sock2.sendto(toSend, (addr[0], 5006))
                             packetExpected += 1
-                            if packetID==numberOfPackets:
-                                print(length)
-                                file.write(packet[9:length+1])
+                            file.write(packet[9:])
+                            if packetID == numberOfPackets:
                                 break
-                            else:
-                                file.write(packet[9:])
                         else:
                             print("N-am primit")
 
@@ -74,9 +72,6 @@ class Receiver:
             file.close()
         except:
             print("A error");
-
-
-
 
 if __name__ == "__main__":
     UDP_IP = socket.gethostbyname(socket.gethostname())

@@ -31,7 +31,6 @@ class Receiver:
     def start(self):
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             sock.bind((UDP_IP, UDP_PORT))
             print(UDP_IP)
             numberOfPackets = 0
@@ -41,7 +40,7 @@ class Receiver:
             packetExpected = 1
             file = 0
             while True:
-                data, addr = sock.recvfrom(1024)
+                data, addr = sock.recvfrom(2048)
                 packet=bytes(data)
                 print(addr)
                 if packet[0] == self.INF:
@@ -59,7 +58,7 @@ class Receiver:
                         toSend = self.encodeAck(packetID)
                         a = random()
                         if a>0.003:
-                            s = sock2.sendto(toSend, (addr[0], 5006))
+                            s = sock.sendto(toSend, (addr[0], 5006))
                             packetExpected += 1
                             file.write(packet[9:])
                             if packetID == numberOfPackets:
@@ -68,10 +67,9 @@ class Receiver:
                             print("N-am primit")
 
             sock.close()
-            sock2.close()
             file.close()
         except:
-            print("A error");
+            print("An error");
 
 if __name__ == "__main__":
     UDP_IP = socket.gethostbyname(socket.gethostname())

@@ -1,6 +1,7 @@
 
 from random import random
 from interfaceReceiver import *
+from logging import *
 import threading
 import sys
 sys.path.append('..//')
@@ -15,6 +16,10 @@ class Receiver:
         self.Data = 4
         self.INF = 8
         self.interface = app
+        form = "%(asctime)-15s-%(message)s"
+        f=open("logging.txt", mode="w")
+        f.close()
+        basicConfig(format=form, filename="logging.txt",level=INFO)
         self.message = ""
 
     def decodeData(self, packet):
@@ -45,24 +50,26 @@ class Receiver:
             packetExpected = 1
             file = 0
             while True:
+                msg = "Se asteapta pachetul: " + str(packetExpected)
+                info(msg)
                 data, addr = sock.recvfrom(2048)
                 packet=bytes(data)
                 print(addr)
                 if packet[0] == self.INF:
-                    print("Pachet tip informatie inceput")
+                    info("S-a primit pachetul cu informatiile: \n")
                     numberOfPackets, fileName = self.decodeINF(packet)
-                    print(int.from_bytes(numberOfPackets,"big"), " pachete")
-                    print("Nume fisier ", fileName, ", numar de pachete ", numberOfPackets.hex())
+                    msg = "Nume fisier: " + str(fileName)+", numar de pachete " + str(int.from_bytes(numberOfPackets, "big"))
+                    info(msg)
                     file = open(fileName, "wb")
                 if packet[0] == self.Data:
-                    print("Pachet tip date")
                     packetID, length, dataF = self.decodeData(packet)
                     print(packetID)
                     if packetExpected.to_bytes(4, "big") == packetID:
-                        print("Numar de secventa ", packetID.hex(), ", lungime ", length.hex())
                         toSend = self.encodeAck(packetID)
                         a = random()
                         if a > 0.003:
+                            msg = "S-a primit pachetul cu numraul de secventa " + str(int.from_bytes(packetID, "big")) + ", lungime "+ str(int.from_bytes(length, "big"))+" octeti"
+                            info(msg)
                             s = sock.sendto(toSend, (addr[0], 5006))
                             packetExpected += 1
                             file.write(packet[9:])
@@ -71,34 +78,43 @@ class Receiver:
                             if packetID == numberOfPackets:
                                 break
                         else:
-                            print("N-am primit")
-
+                            msg = "Nu s-a primit pachetul " + str(int.from_bytes(packetID, "big")) + "(S-a pierdut)."
+                            info(msg)
             sock.close()
             file.close()
             self.interface.button.config(state="normal")
             self.interface.progressbar.config(value=0)
             self.message = "Transfer completed!!!"
         except:
-            print("A error")
             self.message = "Transfer failed!!!"
+            error("Erroare la transmisie")
         finally:
             win = tk.Tk()
             appMsg = AppInfo(win, self.message)
             appMsg.mainloop()
 
 
+def showError():
+    win = tk.Tk()
+    appMsg = AppInfo(win, "Campurile 'Yout IP' si 'Port' trebuie sa fie completate")
+    appMsg.mainloop()
+
+
 def initialize(app):
-    UDP_IP =app.entryIP.get()
-    UDP_PORT = int(app.entryPort.get())
-    app.button.config(state = "disabled")
-    receiver = Receiver(UDP_IP, UDP_PORT,app)
-    thread = threading.Thread(target=receiver.start, args=())
-    thread.start()
+    if(app.entryIP.get() and app.entryPort.get()):
+        UDP_IP =app.entryIP.get()
+        UDP_PORT = int(app.entryPort.get())
+        app.button.config(state = "disabled")
+        receiver = Receiver(UDP_IP, UDP_PORT,app)
+        thread = threading.Thread(target=receiver.start, args=())
+        thread.start()
+    else:
+        threading.Thread(target=showError, args=()).start()
 
 
 def main():
     root = tk.Tk()
-    root.geometry("250x120")
+    root.geometry("350x150")
     app = App(root)
     app.button.configure(command=lambda: initialize(app))
     app.mainloop()

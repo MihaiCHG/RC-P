@@ -30,8 +30,9 @@ class Receiver:
 
     def decodeINF(self, packet):
         packets = packet[1:5]
-        fname = packet[5:]
-        return packets, fname
+        senderPort = packet[5:7]
+        fname = packet[7:]
+        return packets, senderPort,fname
 
     def encodeAck(self, pID):
         toSend = b''
@@ -43,6 +44,7 @@ class Receiver:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             sock.bind((self.UDP_IP, self.UDP_PORT))
             print(self.UDP_IP)
+            senderPort = 0
             numberOfPackets = 0
             fileName = ""
             packetID = 0
@@ -57,7 +59,7 @@ class Receiver:
                 print(addr)
                 if packet[0] == self.INF:
                     info("S-a primit pachetul cu informatiile: \n")
-                    numberOfPackets, fileName = self.decodeINF(packet)
+                    numberOfPackets, senderPort, fileName = self.decodeINF(packet)
                     msg = "Nume fisier: " + str(fileName)+", numar de pachete " + str(int.from_bytes(numberOfPackets, "big"))
                     info(msg)
                     file = open(fileName, "wb")
@@ -70,7 +72,7 @@ class Receiver:
                         if a > 0.003:
                             msg = "S-a primit pachetul cu numraul de secventa " + str(int.from_bytes(packetID, "big")) + ", lungime "+ str(int.from_bytes(length, "big"))+" octeti"
                             info(msg)
-                            s = sock.sendto(toSend, (addr[0], 5006))
+                            s = sock.sendto(toSend, (addr[0],int.from_bytes(senderPort, "big")))
                             packetExpected += 1
                             file.write(packet[9:])
                             percent = int(int.from_bytes(packetID,"big")*100. / int.from_bytes(numberOfPackets,"big"))
@@ -92,6 +94,7 @@ class Receiver:
             win = tk.Tk()
             appMsg = AppInfo(win, self.message)
             appMsg.mainloop()
+            exit(-1)
 
 
 def showError():
